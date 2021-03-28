@@ -1,5 +1,5 @@
 patp_test <- function(data, tmat, cid = "cid", id = "id", group = "group", h = 1,
-                      j = 2, s = 0, weighted=FALSE, LMAJ=FALSE, B = 1000, ipw = 0,
+                      j = 2, s = 0,  B = 1000, ipw = 0,
                       method = "linear", tau = NULL){
   n <- length(unique(data[,cid]))
   groups <- unique(data[,group])
@@ -87,12 +87,10 @@ patp_test <- function(data, tmat, cid = "cid", id = "id", group = "group", h = 1
   }
   
   for(g in groups){
-    if (!LMAJ) {
       group_data <- data[data[,group]==g,]
       P0 <- sop_t(data = group_data, tau=NULL, S = seq(nrow(tmat)), T_c = seq(nrow(tmat) - 1),
                   ipw=0, trans = tmat, times = NULL)
       
-    }
     rep1 <- function(x){
       x[c(1, seq_along(x))]
     }
@@ -230,58 +228,5 @@ patp_test <- function(data, tmat, cid = "cid", id = "id", group = "group", h = 1
     names(pval) <- paste0("p-value at State", j)
     return(pval)
   }
-}
-
-#######################################
-#### Add group information#############
-#######################################
-
-add_group <- function(data){
-  group <- by(data, data$cid, function(sub_dat){
-    l <- length(unique(sub_dat$id))
-    rbinom(l, 1, 0.5) 
-  })
-  g <- do.call(c, group)
-  ## Add group information
-  res <- do.call(rbind, by(data, data$id, function(sub_dat){
-    sub_dat$group <- rep(g[sub_dat$id[1]], nrow(sub_dat))
-    return(sub_dat)
-  }))
-  return(res)
-}
-
-trans <- function(nstate, state_names, from, to) {
-  if (missing(nstate) && missing(state_names))
-    stop("One of 'nstate' and 'state_names' has to be specified.")
-  if (missing(state_names)) {
-    state_names <- as.character(seq_len(nstate))
-  } else {
-    state_names <- unique(state_names)
-    nstate <- length(state_names)
-  }
-  if (length(from) != length(to))
-    stop("The length of 'from' and 'to' must be the same.")
-  if (is.character(from)) {
-    from <- match(from, state_names)
-  } else {
-    from <- as.integer(from)
-  }
-  if (is.character(to)) {
-    to <- match(to, state_names)
-  } else {
-    to <- as.integer(to)
-  }
-  mat <- matrix(FALSE, ncol = nstate, nrow = nstate)
-  dimnames(mat) <- list(state_names, state_names)
-  mat[cbind(from, to)] <- TRUE
-  mat
-}
-
-
-get_data <- function(n, M0 = 10, M1 = 20, tmat){
-  dat <- simulate(n = n, M0 = M0, M1 = M1)
-  dat <- reshape_long(dat, tmat = tmat)
-  dat <- add_group(dat)
-  return(dat)
 }
 
